@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body {
+      width: 320px;
+      font-family: system-ui, sans-serif;
+      padding: 15px;
+      background: #fdfdfd;
+      color: #333;
+    }
+    h2 {
+      color: #ff4757;
+      margin-top: 0;
+      font-size: 18px;
+      border-bottom: 2px solid #ff4757;
+      padding-bottom: 5px;
+    }
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: 600;
+      font-size: 13px;
+      color: #555;
+    }
+    select, input {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      box-sizing: border-box;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: #ff4757;
+    }
+    button {
+      margin-top: 15px;
+      width: 100%;
+      padding: 10px;
+      background: #ff4757;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #ff6b81;
+    }
+    #saveBtn {
+      background: #2ed573;
+    }
+    #saveBtn:hover {
+      background: #7bed9f;
+    }
+    #status {
+      margin-top: 15px;
+      font-size: 13px;
+      color: #2ed573;
+      text-align: center;
+      display: none;
+      font-weight: 600;
+    }
+    .error {
+      color: #ff4757 !important;
+    }
+  </style>
+</head>
+<body>
+  <h2>⚙️ LLM API Settings</h2>
+  
+  <label for="provider">Provider</label>
+  <select id="provider">
+    <option value="gemini">Google Gemini</option>
+  </select>
+
+  <label for="apiKey">API Key</label>
+  <input type="password" id="apiKey" placeholder="Enter your API Key..." />
+
+  <button id="fetchModelsBtn">Fetch Provider Models</button>
+
+  <div id="modelContainer" style="display: none;">
+    <label for="modelSelect">Select Translation Model</label>
+    <select id="modelSelect"></select>
+    <button id="saveBtn">Save Settings</button>
+  </div>
+
+  <div id="status"></div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

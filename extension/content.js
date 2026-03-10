@@ -85,87 +85,94 @@ translateBtn.addEventListener('click', () => {
       currentAbortController = new AbortController();
       const signal = currentAbortController.signal;
 
-      // Call local backend
-      fetch('http://localhost:3000/api/translate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ imageBase64: response.imageBase64 }),
-        signal: signal
-      })
-        .then(res => res.json().then(data => ({ status: res.status, ok: res.ok, data })))
-        .then(({ status, ok, data }) => {
-          translateBtn.innerHTML = 'Scan & Translate Manga (LTR)';
-          translateBtn.style.pointerEvents = 'auto';
-          translateBtn.style.opacity = '1';
-
-          if (ok && data.success) {
-            showOverlay(`<h2 style="color:#ffcc00;">English translation:</h2><p>${data.translatedText}</p><hr/><h4 style="color:#aaa;">Original LTR scan:</h4><p style="font-size:16px;">${data.originalText}</p>`);
-          } else {
-            // Render the error in the overlay with a copy button
-            const errorText = data.details || data.error || 'Unknown error occurred.';
-            const fullErrorString = `Status: ${status}\nError: ${data.error}\nDetails: ${errorText}`;
-
-            showOverlay(`
-              <h2 style="color:#e84118;">❌ Translation Failed</h2>
-              <p style="color:#ffb8b8; font-size: 18px;">${data.error || 'The server responded with an error.'}</p>
-              <div style="background: rgba(0,0,0,0.5); padding: 15px; border-radius: 5px; text-align: left; font-size: 14px; overflow-x: auto; margin-top: 15px;">
-                <code id="manga-error-text" style="color: #ff9f43; white-space: pre-wrap;">${fullErrorString}</code>
-              </div>
-              <button id="manga-copy-error" style="margin-top: 20px; padding: 10px 20px; background: #686de0; color: #fff; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">
-                📋 Copy Error Text
-              </button>
-            `);
-
-            // Add copy functionality
-            setTimeout(() => {
-              const copyBtn = document.getElementById('manga-copy-error');
-              if (copyBtn) {
-                copyBtn.onclick = () => {
-                  navigator.clipboard.writeText(fullErrorString).then(() => {
-                    copyBtn.innerHTML = '✅ Copied!';
-                    setTimeout(() => copyBtn.innerHTML = '📋 Copy Error Text', 2000);
-                  });
-                };
-              }
-            }, 100);
-          }
+      chrome.storage.local.get(['apiKey', 'provider', 'selectedModel'], (settings) => {
+        // Call local backend
+        fetch('http://localhost:3000/api/translate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            imageBase64: response.imageBase64,
+            apiKey: settings.apiKey,
+            provider: settings.provider,
+            model: settings.selectedModel
+          }),
+          signal: signal
         })
-        .catch(err => {
-          translateBtn.innerHTML = 'Scan & Translate Manga (LTR)';
-          translateBtn.style.pointerEvents = 'auto';
-          translateBtn.style.opacity = '1';
+          .then(res => res.json().then(data => ({ status: res.status, ok: res.ok, data })))
+          .then(({ status, ok, data }) => {
+            translateBtn.innerHTML = 'Scan & Translate Manga (LTR)';
+            translateBtn.style.pointerEvents = 'auto';
+            translateBtn.style.opacity = '1';
 
-          if (err.name === 'AbortError') {
-            console.log('Translation aborted by user');
-          } else {
-            const errorString = err.toString();
-            showOverlay(`
-              <h2 style="color:#e84118;">❌ Fetch Failed</h2>
-              <p style="color:#ffb8b8; font-size: 18px;">Could not connect to the local backend. Is Node running on port 3000?</p>
-              <div style="background: rgba(0,0,0,0.5); padding: 15px; border-radius: 5px; text-align: left; font-size: 14px; overflow-x: auto; margin-top: 15px;">
-                <code id="manga-error-text" style="color: #ff9f43; white-space: pre-wrap;">${errorString}</code>
-              </div>
-              <button id="manga-copy-error" style="margin-top: 20px; padding: 10px 20px; background: #686de0; color: #fff; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">
-                📋 Copy Error Text
-              </button>
-            `);
+            if (ok && data.success) {
+              showOverlay(`<h2 style="color:#ffcc00;">English translation:</h2><p>${data.translatedText}</p><hr/><h4 style="color:#aaa;">Original LTR scan:</h4><p style="font-size:16px;">${data.originalText}</p>`);
+            } else {
+              // Render the error in the overlay with a copy button
+              const errorText = data.details || data.error || 'Unknown error occurred.';
+              const fullErrorString = `Status: ${status}\nError: ${data.error}\nDetails: ${errorText}`;
 
-            setTimeout(() => {
-              const copyBtn = document.getElementById('manga-copy-error');
-              if (copyBtn) {
-                copyBtn.onclick = () => {
-                  navigator.clipboard.writeText(errorString).then(() => {
-                    copyBtn.innerHTML = '✅ Copied!';
-                    setTimeout(() => copyBtn.innerHTML = '📋 Copy Error Text', 2000);
-                  });
-                };
-              }
-            }, 100);
-            console.error(err);
-          }
-        });
+              showOverlay(`
+                <h2 style="color:#e84118;">❌ Translation Failed</h2>
+                <p style="color:#ffb8b8; font-size: 18px;">${data.error || 'The server responded with an error.'}</p>
+                <div style="background: rgba(0,0,0,0.5); padding: 15px; border-radius: 5px; text-align: left; font-size: 14px; overflow-x: auto; margin-top: 15px;">
+                  <code id="manga-error-text" style="color: #ff9f43; white-space: pre-wrap;">${fullErrorString}</code>
+                </div>
+                <button id="manga-copy-error" style="margin-top: 20px; padding: 10px 20px; background: #686de0; color: #fff; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">
+                  📋 Copy Error Text
+                </button>
+              `);
+
+              // Add copy functionality
+              setTimeout(() => {
+                const copyBtn = document.getElementById('manga-copy-error');
+                if (copyBtn) {
+                  copyBtn.onclick = () => {
+                    navigator.clipboard.writeText(fullErrorString).then(() => {
+                      copyBtn.innerHTML = '✅ Copied!';
+                      setTimeout(() => copyBtn.innerHTML = '📋 Copy Error Text', 2000);
+                    });
+                  };
+                }
+              }, 100);
+            }
+          })
+          .catch(err => {
+            translateBtn.innerHTML = 'Scan & Translate Manga (LTR)';
+            translateBtn.style.pointerEvents = 'auto';
+            translateBtn.style.opacity = '1';
+
+            if (err.name === 'AbortError') {
+              console.log('Translation aborted by user');
+            } else {
+              const errorString = err.toString();
+              showOverlay(`
+                <h2 style="color:#e84118;">❌ Fetch Failed</h2>
+                <p style="color:#ffb8b8; font-size: 18px;">Could not connect to the local backend. Is Node running on port 3000?</p>
+                <div style="background: rgba(0,0,0,0.5); padding: 15px; border-radius: 5px; text-align: left; font-size: 14px; overflow-x: auto; margin-top: 15px;">
+                  <code id="manga-error-text" style="color: #ff9f43; white-space: pre-wrap;">${errorString}</code>
+                </div>
+                <button id="manga-copy-error" style="margin-top: 20px; padding: 10px 20px; background: #686de0; color: #fff; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">
+                  📋 Copy Error Text
+                </button>
+              `);
+
+              setTimeout(() => {
+                const copyBtn = document.getElementById('manga-copy-error');
+                if (copyBtn) {
+                  copyBtn.onclick = () => {
+                    navigator.clipboard.writeText(errorString).then(() => {
+                      copyBtn.innerHTML = '✅ Copied!';
+                      setTimeout(() => copyBtn.innerHTML = '📋 Copy Error Text', 2000);
+                    });
+                  };
+                }
+              }, 100);
+              console.error(err);
+            }
+          });
+      });
     } else {
       translateBtn.innerHTML = 'Scan & Translate Manga (LTR)';
       translateBtn.style.pointerEvents = 'auto';

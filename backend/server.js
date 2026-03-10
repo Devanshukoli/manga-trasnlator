@@ -16,15 +16,52 @@ mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTop
   .then(() => console.log('✅ MongoDB Connected'))
   .catch(err => console.error('MongoDB connection error:', err));
 
+app.get('/api/models', async (req, res) => {
+  try {
+    const { provider } = req.query;
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ success: false, error: 'Missing API key' });
+    }
+    const apiKey = authHeader.split(' ')[1];
+
+    if (provider !== 'gemini') {
+      return res.status(400).json({ success: false, error: 'Unsupported provider' });
+    }
+
+    // Call Google Gemini models list endpoint
+    const response = await axios.get(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+
+    // Filter for models that actually support generateContent
+    const validModels = (response.data.models || []).filter(m =>
+      m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent')
+    );
+
+    res.json({ success: true, models: validModels });
+  } catch (error) {
+    console.error('Error fetching models:', error.response?.data || error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch models: ' + (error.response?.data?.error?.message || error.message)
+    });
+  }
+});
+
 app.post('/api/translate', async (req, res) => {
   try {
-    const { imageBase64 } = req.body;
+    const { imageBase64, provider, apiKey, model: reqModel } = req.body;
     if (!imageBase64) return res.status(400).json({ error: 'No image provided' });
 
+    // Prefer user credentials over backend env vars
+    const activeApiKey = apiKey || process.env.GEMINI_API_KEY;
+    const activeModelName = reqModel || "gemini-3.1-pro-preview";
+
+    if (!activeApiKey) return res.status(400).json({ error: 'No API key configured' });
+
     // Initialize Gemini API
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const genAI = new GoogleGenerativeAI(activeApiKey);
     const model = genAI.getGenerativeModel(
-      { model: "gemini-3.1-pro-preview" },
+      { model: activeModelName },
       { apiVersion: "v1beta" }
     );
 
