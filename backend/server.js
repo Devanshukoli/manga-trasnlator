@@ -23,7 +23,10 @@ app.post('/api/translate', async (req, res) => {
 
     // Initialize Gemini API
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel(
+      { model: "gemini-3.1-pro-preview" },
+      { apiVersion: "v1beta" }
+    );
 
     // 1. Image OCR extraction with specific Left-to-Right direction awareness
     const ocrPrompt = `You are a Japanese manga OCR assistant. 
@@ -77,6 +80,16 @@ app.post('/api/translate', async (req, res) => {
     });
   } catch (error) {
     console.error(error);
+
+    // Check if it's a 429 Too Many Requests error from Gemini API
+    if (error.status === 429) {
+      return res.status(429).json({
+        success: false,
+        error: 'Rate Limit Exceeded: You have exceeded your Gemini API quota. Please check your billing details or try again later.',
+        details: error.message
+      });
+    }
+
     res.status(500).json({ success: false, error: error.message });
   }
 });
